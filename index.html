@@ -4,54 +4,64 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HabitLoop AI — Habit Tracker with Streaks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <header class="topbar">
-  <div class="wrap">
-    <h1>HabitLoop <span class="ai">AI</span></h1>
-    <p class="tagline">Small habits. Kept promises. Compounding results.</p>
+  <div class="wrap masthead">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#f7f4ee" stroke-width="1.8"/><circle cx="12" cy="12" r="4" fill="#f7f4ee"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3" stroke="#f7f4ee" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </span>
+      <div class="brand-text">
+        <h1>HabitLoop <span class="ai">AI</span></h1>
+        <p class="tagline">Small habits. Kept promises. Compounding results.</p>
+      </div>
+    </div>
   </div>
 </header>
 
 <main class="wrap">
   <section id="milestone-banner" class="banner" style="display:none"></section>
 
-  <section class="stats-row">
+  <section class="stats-row" aria-label="Overview">
     <div class="stat"><span class="num" id="stat-habits">0</span><span class="lbl">habits</span></div>
     <div class="stat"><span class="num" id="stat-streaks">0</span><span class="lbl">active streaks</span></div>
     <div class="stat"><span class="num" id="stat-best">0</span><span class="lbl">longest ever</span></div>
   </section>
 
   <section class="panel">
-    <h2>Add a habit</h2>
+    <div class="panel-head"><h2>Add a habit</h2><span class="panel-note">start embarrassingly small</span></div>
     <form id="habit-form">
       <div class="row">
-        <label>Habit name
+        <label class="field"><span class="flbl">Habit name</span>
           <input id="f-name" type="text" maxlength="80" placeholder="e.g. Morning walk" required>
         </label>
-        <label>Frequency
+        <label class="field"><span class="flbl">Frequency</span>
           <select id="f-freq">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
           </select>
         </label>
-        <label>Preferred time (optional)
+        <label class="field"><span class="flbl">Preferred time <em>(optional)</em></span>
           <input id="f-reminder" type="text" maxlength="20" placeholder="e.g. 7:00 AM">
         </label>
       </div>
-      <label>Notes (optional)
+      <label class="field"><span class="flbl">Notes <em>(optional)</em></span>
         <input id="f-notes" type="text" maxlength="200" placeholder="Why this matters, what 'done' looks like…">
       </label>
       <div id="form-error" class="error" style="display:none"></div>
       <button type="submit" class="primary">Add habit</button>
     </form>
-    <p class="hint">Tip: start embarrassingly small. "Read 1 page" beats "read a book" — you can always scale up.</p>
+    <p class="hint">Tip: start embarrassingly small. “Read 1 page” beats “read a book” — you can always scale up.</p>
   </section>
 
   <section>
-    <h2>Your habits</h2>
-    <div id="habit-list"></div>
+    <div class="journal-head"><h2>Your habits</h2><span class="journal-sub">the daily chain</span></div>
+    <div id="habit-list" class="habits"></div>
   </section>
 
   <footer class="foot">
