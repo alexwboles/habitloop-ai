@@ -47,7 +47,7 @@
     var hits = summary.filter(function (s) { return s.milestone; });
     if (hits.length) {
       banner.style.display = 'block';
-      banner.innerHTML = '<strong>🎉 Milestone!</strong> ' +
+      banner.innerHTML = '<strong>Milestone!</strong> ' +
         hits.map(function (s) { return '<strong>' + esc(s.name) + '</strong> — ' + esc(s.milestone); }).join('<br>');
     } else {
       banner.style.display = 'none';
@@ -67,17 +67,17 @@
         return '<button class="' + cls + '" data-act="toggle" data-id="' + s.id + '" data-date="' + g.date + '" title="' + g.date + '">' +
           dayLabel(g.date) + '<span>' + g.date.slice(8) + '</span></button>';
       }).join('');
-      var next = s.next ? '<div class="next">Next milestone: <strong>' + s.next.at + '</strong> (' + s.next.remaining + ' to go)</div>' : '<div class="next">All milestones conquered 🏆</div>';
+      var next = s.next ? '<div class="next">Next milestone: <strong>' + s.next.at + '</strong> (' + s.next.remaining + ' to go)</div>' : '<div class="next">All milestones conquered</div>';
       return '<div class="card">' +
         '<div class="card-head"><div><h3>' + esc(s.name) + '</h3>' +
-        '<div class="meta">' + esc(s.frequency) + (h.reminder ? ' · ⏰ ' + esc(h.reminder) : '') + '</div></div>' +
+        '<div class="meta">' + esc(s.frequency) + (h.reminder ? ' · ' + esc(h.reminder) : '') + '</div></div>' +
         '<div class="streak"><span class="num">' + s.streak + '</span><span class="lbl">' + (s.frequency === 'weekly' ? 'wk streak' : 'day streak') + '</span></div></div>' +
         '<div class="grid">' + gridHtml + '</div>' +
         '<div class="grid-nav"><button data-act="prev" data-id="' + s.id + '">← earlier</button>' +
         '<button data-act="now" data-id="' + s.id + '">this week</button></div>' +
         '<div class="stats">Longest: <strong>' + s.longest + '</strong> · Total check-ins: <strong>' + s.total + '</strong></div>' +
         next +
-        (h.notes ? '<div class="notes">📝 ' + esc(h.notes) + '</div>' : '') +
+        (h.notes ? '<div class="notes">' + esc(h.notes) + '</div>' : '') +
         '<div class="reminder">' + esc(H.reminderNote(h)) + '</div>' +
         '<div class="card-actions"><button class="danger" data-act="del" data-id="' + s.id + '">Delete habit</button></div>' +
         '</div>';
