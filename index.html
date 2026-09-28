@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HabitLoop AI — Habit Tracker with Streaks</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <h1>🔁 HabitLoop <span class="ai">AI</span></h1>
+    <p class="tagline">Small habits. Kept promises. Compounding results.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="milestone-banner" class="banner" style="display:none"></section>
+
+  <section class="stats-row">
+    <div class="stat"><span class="num" id="stat-habits">0</span><span class="lbl">habits</span></div>
+    <div class="stat"><span class="num" id="stat-streaks">0</span><span class="lbl">active streaks</span></div>
+    <div class="stat"><span class="num" id="stat-best">0</span><span class="lbl">longest ever</span></div>
+  </section>
+
+  <section class="panel">
+    <h2>Add a habit</h2>
+    <form id="habit-form">
+      <div class="row">
+        <label>Habit name
+          <input id="f-name" type="text" maxlength="80" placeholder="e.g. Morning walk" required>
+        </label>
+        <label>Frequency
+          <select id="f-freq">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+          </select>
+        </label>
+        <label>Preferred time (optional)
+          <input id="f-reminder" type="text" maxlength="20" placeholder="e.g. 7:00 AM">
+        </label>
+      </div>
+      <label>Notes (optional)
+        <input id="f-notes" type="text" maxlength="200" placeholder="Why this matters, what 'done' looks like…">
+      </label>
+      <div id="form-error" class="error" style="display:none"></div>
+      <button type="submit" class="primary">Add habit</button>
+    </form>
+    <p class="hint">Tip: start embarrassingly small. "Read 1 page" beats "read a book" — you can always scale up.</p>
+  </section>
+
+  <section>
+    <h2>Your habits</h2>
+    <div id="habit-list"></div>
+  </section>
+
+  <footer class="foot">
+    <p>HabitLoop AI runs 100% in your browser. Your habits never leave this device — no accounts, no tracking.</p>
+  </footer>
+</main>
+
+<script src="js/logic.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
