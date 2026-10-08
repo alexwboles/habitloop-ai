@@ -206,6 +206,94 @@
       ' — stack it onto something you already do (after coffee, after lunch) and it sticks faster.';
   }
 
+  // Edit a habit's details in place (name/frequency can't change type history, but
+  // name, reminder, notes are freely editable).
+  function updateHabit(habits, id, fields) {
+    var h = findHabit(habits, id);
+    if (!h) return { ok: false, error: 'Habit not found.' };
+    if (fields.name != null) {
+      var nm = String(fields.name).trim();
+      if (!nm) return { ok: false, error: 'Give your habit a name.' };
+      if (nm.length > 80) return { ok: false, error: 'Keep the name under 80 characters.' };
+      h.name = nm;
+    }
+    if (fields.frequency != null && fields.frequency !== h.frequency) {
+      if (FREQUENCIES.indexOf(fields.frequency) === -1)
+        return { ok: false, error: 'Frequency must be daily or weekly.' };
+      h.frequency = fields.frequency;
+    }
+    if (fields.reminder != null) h.reminder = String(fields.reminder).trim();
+    if (fields.notes != null) h.notes = String(fields.notes).trim();
+    return { ok: true, habit: h };
+  }
+
+  // Archive a habit (soft-delete) — keeps history for restore.
+  function archiveHabit(habits, id) {
+    var h = findHabit(habits, id);
+    if (!h) return { ok: false, error: 'Habit not found.' };
+    h.archived = true;
+    return { ok: true, habit: h };
+  }
+
+  function restoreHabit(habits, id) {
+    var h = findHabit(habits, id);
+    if (!h) return { ok: false, error: 'Habit not found.' };
+    delete h.archived;
+    return { ok: true, habit: h };
+  }
+
+  function activeHabits(habits) { return habits.filter(function (h) { return !h.archived; }); }
+  function archivedHabits(habits) { return habits.filter(function (h) { return !!h.archived; }); }
+
+  // 30-day consistency: share of days (daily) or weeks (weekly) with check-ins.
+  function consistency(habit, today) {
+    today = today || todayStr();
+    var n = 30, hit = 0;
+    if (habit.frequency === 'weekly') {
+      var weeks = {};
+      habit.checkins.forEach(function (d) { weeks[weekStart(d)] = 1; });
+      for (var w = 0; w < 4; w++) {
+        if (weeks[weekStart(addDays(today, -7 * w))]) hit++;
+      }
+      return { done: hit, total: 4, pct: Math.round(hit / 4 * 100) };
+    }
+    var set = {};
+    habit.checkins.forEach(function (d) { set[d] = 1; });
+    for (var i = 0; i < n; i++) {
+      if (set[addDays(today, -i)]) hit++;
+    }
+    return { done: hit, total: n, pct: Math.round(hit / n * 100) };
+  }
+
+  // Sort habits for display: 'streak' | 'longest' | 'name' | 'created'.
+  function sortHabits(habits, today, mode) {
+    today = today || todayStr();
+    var info = {};
+    habits.forEach(function (h) {
+      info[h.id] = { streak: streakFor(h, today), longest: longestStreak(h) };
+    });
+    return habits.slice().sort(function (a, b) {
+      if (mode === 'name') return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1;
+      if (mode === 'longest') return info[b.id].longest - info[a.id].longest;
+      if (mode === 'created') return (a.createdAt || '') < (b.createdAt || '') ? -1 : 1;
+      return info[b.id].streak - info[a.id].streak; // 'streak' default
+    });
+  }
+
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  // Export one habit's check-in history as CSV.
+  function habitToCSV(habit) {
+    var rows = [['date', 'done']];
+    uniqueSorted(habit.checkins).forEach(function (d) {
+      rows.push([csvCell(d), 'yes']);
+    });
+    return rows.map(function (r) { return r.join(','); }).join('\n');
+  }
+
   function summarize(habits, today) {
     today = today || todayStr();
     return habits.map(function (h) {
@@ -227,6 +315,9 @@
     checkIn: checkIn, uncheck: uncheck,
     streakFor: streakFor, longestStreak: longestStreak, totalCheckins: totalCheckins,
     weekGrid: weekGrid, milestoneFor: milestoneFor, nextMilestone: nextMilestone,
-    reminderNote: reminderNote, summarize: summarize
+    reminderNote: reminderNote, summarize: summarize,
+    updateHabit: updateHabit, archiveHabit: archiveHabit, restoreHabit: restoreHabit,
+    activeHabits: activeHabits, archivedHabits: archivedHabits,
+    consistency: consistency, sortHabits: sortHabits, habitToCSV: habitToCSV
   };
 }));

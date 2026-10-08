@@ -15,7 +15,11 @@ Add a habit (daily or weekly) → tap the day-grid to check in → watch honest 
 4. **Milestone messages** — motivational notes at 7, 14, 30, 60, 100, and 365; "next milestone" countdown on every card.
 5. **Gentle reminder notes** — frequency-aware nudge copy with your preferred time; habit-stacking tip included.
 6. **Habit notes** — why it matters / what "done" looks like, shown on the card.
-7. **100% local** — no accounts, no servers, no tracking. Data lives in `localStorage`.
+7. **Edit any habit** — rename it, change the reminder time, frequency, or notes inline.
+8. **30-day consistency score** — what share of the last 30 days (or 4 weeks) you showed up, right on the card.
+9. **Sort your habits** — by streak, longest ever, name, or newest first.
+10. **Archive instead of delete** — dormant habits rest in an archive with their history intact; restore anytime. Export any habit's full check-in history as CSV.
+11. **100% local** — no accounts, no servers, no tracking. Data lives in `localStorage`.
 
 ## Pricing vision
 Free forever for individuals · **$6/mo Coach** (share streaks with an accountability partner, weekly email digest) · $49/mo Teams (workplace wellness challenges).

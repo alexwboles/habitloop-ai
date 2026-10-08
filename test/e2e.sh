@@ -58,6 +58,46 @@ const badCheck = H.checkIn(habits, 'nope', T);
 (!badAdd.ok && badAdd.errors.length > 0 && !badCheck.ok)
   ? ok('flow7: blank name rejected; unknown id check-in fails cleanly') : bad('flow7');
 
+// Flow 8: user renames a habit and fixes the reminder time
+const ren = [];
+const rh = H.addHabit(ren, { name: 'Read', frequency: 'daily', reminder: '10 PM', today: T });
+const up = H.updateHabit(ren, rh.habit.id, { name: 'Read 10 pages', reminder: '9 PM' });
+const summ8 = H.summarize(ren, T)[0];
+(up.ok && summ8.name === 'Read 10 pages')
+  ? ok('flow8: rename + reminder change reflected on the card') : bad('flow8');
+
+// Flow 9: consistency shows on the card; export the history as CSV
+const ex = [];
+const eh = H.addHabit(ex, { name: 'Floss', frequency: 'daily', today: T });
+for (let i = 0; i < 20; i++) H.checkIn(ex, eh.habit.id, H.addDays(T, -i));
+const cons9 = H.consistency(eh.habit, T);
+const csv9 = H.habitToCSV(eh.habit).split('\n');
+(cons9.pct === 67 && csv9[0] === 'date,done' && csv9.length === 21)
+  ? ok('flow9: 20/30 = 67% consistency; CSV has 20 rows') : bad('flow9: ' + JSON.stringify(cons9));
+
+// Flow 10: archive a dormant habit instead of deleting; restore later
+const arc = [];
+const ah = H.addHabit(arc, { name: 'Old resolution', frequency: 'daily', today: T });
+H.checkIn(arc, ah.habit.id, H.addDays(T, -40));
+H.archiveHabit(arc, ah.habit.id);
+const act10 = H.activeHabits(arc);
+const arc10 = H.archivedHabits(arc);
+(act10.length === 0 && arc10.length === 1 && arc10[0].checkins.length === 1)
+  ? ok('flow10: archived habit hidden from the chain, history kept') : bad('flow10');
+H.restoreHabit(arc, ah.habit.id);
+(H.activeHabits(arc).length === 1)
+  ? ok('flow10b: restored habit returns to the chain') : bad('flow10b');
+
+// Flow 11: sort habits by streak — the hot streak floats to the top
+const srt = [];
+const sA = H.addHabit(srt, { name: 'A slow one', frequency: 'daily', today: T });
+const sB = H.addHabit(srt, { name: 'B on fire', frequency: 'daily', today: T });
+for (let i = 0; i < 6; i++) H.checkIn(srt, sB.habit.id, H.addDays(T, -i));
+H.checkIn(srt, sA.habit.id, T);
+const top = H.sortHabits(H.activeHabits(srt), T, 'streak')[0];
+(top.name === 'B on fire')
+  ? ok('flow11: sort by streak puts the 6-day streak first') : bad('flow11: ' + top.name);
+
 console.log('');
 console.log('e2e: ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

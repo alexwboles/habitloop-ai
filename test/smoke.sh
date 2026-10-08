@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# HabitLoop AI smoke tests — 14 checks. Fails fast on first failure.
+# HabitLoop AI smoke tests — 19 checks. Fails fast on first failure.
 set -u
 cd "$(dirname "$0")/.."
 PASS=0; FAIL=0
@@ -71,6 +71,56 @@ const note = H.reminderNote({ name: 'Read', frequency: 'daily', reminder: '9 PM'
 const grid = H.weekGrid(r.habit, H.weekStart(H.addDays(T, -2)));
 (/same time each day/.test(note) && /9 PM/.test(note) && grid.length === 7 && grid.filter(g => g.done).length === 2)
   ? ok('reminderNote daily-aware; weekGrid 7 days, 2 done in that week') : bad('note/grid');
+
+// 15: updateHabit edits name/reminder/notes, rejects blank name
+const habits5 = [];
+const r5 = H.addHabit(habits5, { name: 'Walk', frequency: 'daily', today: T });
+const u1 = H.updateHabit(habits5, r5.habit.id, { name: 'Morning walk', reminder: '7 AM', notes: 'around the block' });
+(u1.ok && r5.habit.name === 'Morning walk' && r5.habit.reminder === '7 AM' && r5.habit.notes === 'around the block')
+  ? ok('updateHabit: name/reminder/notes edited') : bad('updateHabit');
+const u2 = H.updateHabit(habits5, r5.habit.id, { name: '   ' });
+(!u2.ok && r5.habit.name === 'Morning walk') ? ok('updateHabit: blank name rejected') : bad('updateHabit blank');
+
+// 16: archive/restore keeps history, hides from active
+const habits6 = [];
+const r6 = H.addHabit(habits6, { name: 'Gym', frequency: 'weekly', today: T });
+H.checkIn(habits6, r6.habit.id, T);
+H.archiveHabit(habits6, r6.habit.id);
+(H.activeHabits(habits6).length === 0 && H.archivedHabits(habits6).length === 1)
+  ? ok('archiveHabit: hidden from active, kept in archived') : bad('archive');
+H.restoreHabit(habits6, r6.habit.id);
+(H.activeHabits(habits6).length === 1 && H.streakFor(r6.habit, T) >= 0)
+  ? ok('restoreHabit: back in active with history intact') : bad('restore');
+
+// 17: consistency = check-ins in last 30 days
+const habits7 = [];
+const r7 = H.addHabit(habits7, { name: 'Read', frequency: 'daily', today: T });
+for (let i = 0; i < 15; i++) H.checkIn(habits7, r7.habit.id, H.addDays(T, -i));
+const c7 = H.consistency(r7.habit, T);
+(c7.done === 15 && c7.total === 30 && c7.pct === 50)
+  ? ok('consistency: 15/30 days -> 50%') : bad('consistency: ' + JSON.stringify(c7));
+const r7w = H.addHabit(habits7, { name: 'Clean', frequency: 'weekly', today: T });
+H.checkIn(habits7, r7w.habit.id, T);
+H.checkIn(habits7, r7w.habit.id, H.addDays(T, -7));
+const cw = H.consistency(r7w.habit, T);
+(cw.done === 2 && cw.total === 4 && cw.pct === 50)
+  ? ok('consistency weekly: 2/4 weeks -> 50%') : bad('consistency weekly');
+
+// 18: sortHabits orders by streak desc / name / longest
+const habits8 = [];
+const a8 = H.addHabit(habits8, { name: 'Zebra', frequency: 'daily', today: T });
+const b8 = H.addHabit(habits8, { name: 'Apple', frequency: 'daily', today: T });
+for (let i = 0; i < 5; i++) H.checkIn(habits8, b8.habit.id, H.addDays(T, -i));
+const byStreak = H.sortHabits(habits8, T, 'streak');
+const byName = H.sortHabits(habits8, T, 'name');
+const byLongest = H.sortHabits(habits8, T, 'longest');
+(byStreak[0].name === 'Apple' && byName[0].name === 'Apple' && byLongest[0].name === 'Apple' && habits8[0].name === 'Zebra')
+  ? ok('sortHabits: streak/longest/name orderings; input unmutated') : bad('sortHabits');
+
+// 19: habitToCSV exports one row per check-in
+const csv = H.habitToCSV(r7.habit).split('\n');
+(csv[0] === 'date,done' && csv.length === 16 && csv[csv.length - 1] === T + ',yes' && csv[1] < csv[csv.length - 1])
+  ? ok('habitToCSV: header + 15 chronological check-in rows') : bad('habitToCSV: ' + csv[0] + ' x' + csv.length);
 
 console.log('');
 console.log('logic: ' + pass + ' passed, ' + fail + ' failed');
