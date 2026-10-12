@@ -187,3 +187,19 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* year heatmap + starter packs */
+.heatmap-scroll { overflow-x: auto; }
+.heatmap { display: flex; gap: 3px; min-width: 700px; }
+.hm-week { display: flex; flex-direction: column; gap: 3px; }
+.hm { width: 11px; height: 11px; background: var(--line-soft); display: inline-block; }
+.hm-l1 { background: #bfe0dc; }
+.hm-l2 { background: #63b8ae; }
+.hm-l3 { background: var(--teal); }
+.hm-future { background: transparent; }
+.hm-legend { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.packs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.pack { text-align: left; background: var(--card); border: 1px solid var(--line); padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; border-radius: 0; font: inherit; color: inherit; }
+.pack:hover { border-color: var(--teal); }
+.pack strong { font-size: 15px; }
+.pack span { font-size: 12.5px; color: var(--muted); }

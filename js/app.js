@@ -40,6 +40,25 @@
     return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
   }
 
+  function renderHeatmap() {
+    var wrap = el('heatmap-wrap');
+    if (!habits.length) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    var weeks = H.yearHeatmap(habits, H.todayStr());
+    var total = 0;
+    var html = weeks.map(function (w) {
+      return '<div class="hm-week">' + w.days.map(function (d) {
+        total += d.count;
+        var lvl = d.count >= 5 ? 3 : d.count >= 3 ? 2 : d.count >= 1 ? 1 : 0;
+        var cls = 'hm' + (d.future ? ' hm-future' : ' hm-l' + lvl);
+        var tip = d.date + (d.count ? ': ' + d.count + ' check-in' + (d.count === 1 ? '' : 's') : '');
+        return '<span class="' + cls + '" title="' + tip + '"></span>';
+      }).join('') + '</div>';
+    }).join('');
+    el('heatmap').innerHTML = '<div class="heatmap">' + html + '</div>';
+    el('heat-note').textContent = total + ' check-ins in the last 12 months';
+  }
+
   function render() {
     save(habits);
     var today = H.todayStr();
@@ -71,7 +90,11 @@
       [['streak', 'Best streak'], ['longest', 'Longest ever'], ['name', 'Name A–Z'], ['created', 'Newest first']].map(function (o) {
         return '<option value="' + o[0] + '"' + (sortMode === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></label>';
-    el('sortWrap').innerHTML = active.length ? sortHtml : '';
+    el('sortWrap').innerHTML = active.length
+      ? sortHtml + ' <button class="ghost-btn small" data-act="export-all">Export all CSV</button>'
+      : (habits.length ? '<button class="ghost-btn small" data-act="export-all">Export all CSV</button>' : '');
+
+    renderHeatmap();
 
     if (!active.length) {
       list.innerHTML = '<div class="empty">No habits yet. Add your first one above — start small, win daily.</div>';
@@ -181,6 +204,13 @@
       render();
     } else if (act === 'prev') { gridOffset -= 1; render(); }
     else if (act === 'now') { gridOffset = 0; render(); }
+    else if (act === 'export-all') {
+      downloadCSV(H.allToCSV(habits), 'habitloop-all-habits.csv');
+    } else if (act === 'pack') {
+      var pr = H.addPack(habits, id, H.todayStr());
+      if (!pr.ok) { alert(pr.error); return; }
+      render();
+    }
   });
 
   el('habit-form').addEventListener('submit', function (e) {
@@ -208,6 +238,11 @@
     }
     try { localStorage.setItem('habitloop.seeded', '1'); } catch (e) {}
   }
+
+  el('packs').innerHTML = H.STARTER_PACKS.map(function (p) {
+    return '<button class="pack" data-act="pack" data-id="' + p.id + '"><strong>' + esc(p.name) +
+      '</strong><span>' + esc(p.desc) + ' · ' + p.habits.length + ' habits</span></button>';
+  }).join('');
 
   render();
 })();

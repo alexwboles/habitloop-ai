@@ -55,7 +55,8 @@
     if (!name || !String(name).trim()) errors.push('Give your habit a name.');
     else if (String(name).trim().length > 80) errors.push('Keep the name under 80 characters.');
     if (FREQUENCIES.indexOf(frequency) === -1) errors.push('Frequency must be daily or weekly.');
-    return { ok: errors.length === 0, errors: errors };
+
+  return { ok: errors.length === 0, errors: errors };
   }
 
   function addHabit(habits, input) {
@@ -286,6 +287,83 @@
   }
 
   // Export one habit's check-in history as CSV.
+    // ---- starter packs: curated habit bundles, one click to begin ----
+  var STARTER_PACKS = [
+    { id: 'morning', name: 'Morning routine', desc: 'Win the first hour of the day.',
+      habits: [
+        { name: 'Make the bed', frequency: 'daily' },
+        { name: 'Drink a glass of water', frequency: 'daily' },
+        { name: 'Stretch for 5 minutes', frequency: 'daily' }
+      ] },
+    { id: 'fitness', name: 'Fitness basics', desc: 'Move a little, every day.',
+      habits: [
+        { name: 'Walk 20 minutes', frequency: 'daily' },
+        { name: 'Strength session', frequency: 'weekly' },
+        { name: 'Stretch before bed', frequency: 'daily' }
+      ] },
+    { id: 'focus', name: 'Deep focus', desc: 'Protect your attention.',
+      habits: [
+        { name: 'One 90-minute focus block', frequency: 'daily' },
+        { name: 'No phone in the first hour', frequency: 'daily' },
+        { name: 'Plan tomorrow tonight', frequency: 'daily' }
+      ] },
+    { id: 'evening', name: 'Evening wind-down', desc: 'End the day on purpose.',
+      habits: [
+        { name: 'Read 10 pages', frequency: 'daily' },
+        { name: 'Tidy one room', frequency: 'daily' },
+        { name: 'Lights out by 11', frequency: 'daily' }
+      ] }
+  ];
+
+  // Add every habit in a pack that isn't already tracked (case-insensitive).
+  function addPack(habits, packId, today) {
+    var pack = null;
+    STARTER_PACKS.forEach(function (p) { if (p.id === packId) pack = p; });
+    if (!pack) return { ok: false, error: 'Unknown starter pack.' };
+    var names = {};
+    habits.forEach(function (h) { names[String(h.name).toLowerCase()] = 1; });
+    var added = [], skipped = [];
+    pack.habits.forEach(function (def) {
+      if (names[String(def.name).toLowerCase()]) { skipped.push(def.name); return; }
+      var res = addHabit(habits, { name: def.name, frequency: def.frequency, notes: def.notes || '', today: today });
+      if (res.ok) { added.push(res.habit.name); names[String(def.name).toLowerCase()] = 1; }
+      else skipped.push(def.name);
+    });
+    return { ok: true, pack: pack.name, added: added, skipped: skipped };
+  }
+
+  // ---- year heatmap: 52 weeks of check-in density across all active habits ----
+  function yearHeatmap(habits, today) {
+    today = today || todayStr();
+    var counts = {};
+    (habits || []).forEach(function (h) {
+      if (h.archived) return;
+      (h.checkins || []).forEach(function (d) { counts[d] = (counts[d] || 0) + 1; });
+    });
+    var weeks = [];
+    for (var w = 51; w >= 0; w--) {
+      var ws = addDays(weekStart(today), -7 * w);
+      var days = [];
+      for (var i = 0; i < 7; i++) {
+        var d = addDays(ws, i);
+        days.push({ date: d, count: counts[d] || 0, future: d > today });
+      }
+      weeks.push({ week: ws, days: days });
+    }
+    return weeks;
+  }
+
+  // ---- export every habit's check-ins as one CSV ----
+  function allToCSV(habits) {
+    var rows = [['habit', 'date', 'done']];
+    (habits || []).forEach(function (h) {
+      uniqueSorted(h.checkins || []).forEach(function (d) {
+        rows.push([csvCell(h.name), csvCell(d), 'yes']);
+      });
+    });
+    return rows.map(function (r) { return r.join(','); }).join('\n');
+  }
+
   function habitToCSV(habit) {
     var rows = [['date', 'done']];
     uniqueSorted(habit.checkins).forEach(function (d) {
@@ -318,6 +396,8 @@
     reminderNote: reminderNote, summarize: summarize,
     updateHabit: updateHabit, archiveHabit: archiveHabit, restoreHabit: restoreHabit,
     activeHabits: activeHabits, archivedHabits: archivedHabits,
-    consistency: consistency, sortHabits: sortHabits, habitToCSV: habitToCSV
+    consistency: consistency, sortHabits: sortHabits, habitToCSV: habitToCSV,
+    STARTER_PACKS: STARTER_PACKS, addPack: addPack,
+    yearHeatmap: yearHeatmap, allToCSV: allToCSV
   };
 }));

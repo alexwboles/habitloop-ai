@@ -33,6 +33,12 @@
     <div class="stat"><span class="num" id="stat-best">0</span><span class="lbl">longest ever</span></div>
   </section>
 
+  <section class="panel" id="heatmap-wrap">
+    <div class="panel-head"><h2>The last 12 months</h2><span class="panel-note" id="heat-note"></span></div>
+    <div id="heatmap" class="heatmap-scroll"></div>
+    <div class="hm-legend"><span>Less</span><span class="hm hm-l0"></span><span class="hm hm-l1"></span><span class="hm hm-l2"></span><span class="hm hm-l3"></span><span>More</span></div>
+  </section>
+
   <section class="panel">
     <div class="panel-head"><h2>Add a habit</h2><span class="panel-note">start embarrassingly small</span></div>
     <form id="habit-form">
@@ -57,6 +63,11 @@
       <button type="submit" class="primary">Add habit</button>
     </form>
     <p class="hint">Tip: start embarrassingly small. “Read 1 page” beats “read a book” — you can always scale up.</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2>Or start with a pack</h2><span class="panel-note">curated bundles, one click</span></div>
+    <div class="packs" id="packs"></div>
   </section>
 
   <section>
