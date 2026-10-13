@@ -113,10 +113,23 @@
     renderHeatmap();
     renderRhythm();
 
+    // Today band: X of Y done + completion ring (Streaks-style day glance)
+    var doneToday = active.filter(function (h) { return h.checkins.indexOf(today) !== -1; }).length;
+    var bandHtml = '';
+    if (active.length) {
+      var bpct = Math.round(doneToday / active.length * 100);
+      var r = 22, bc = 2 * Math.PI * r;
+      bandHtml = '<div class="today-band"><div class="tb-ring">' +
+        '<svg width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="' + r + '" class="ring-bg"/>' +
+        '<circle cx="30" cy="30" r="' + r + '" class="ring-fg" stroke-dasharray="' + bc.toFixed(1) + '" stroke-dashoffset="' + (bc * (1 - bpct / 100)).toFixed(1) + '" transform="rotate(-90 30 30)"/></svg>' +
+        '<span class="tb-num">' + bpct + '%</span></div>' +
+        '<div class="tb-text"><strong>Today</strong><span>' + doneToday + ' of ' + active.length + ' done' +
+        (doneToday === active.length ? ' — perfect day!' : (doneToday === 0 ? ' — tap a circle to start' : '')) + '</span></div></div>';
+    }
     if (!active.length) {
       list.innerHTML = '<div class="empty">No habits yet. Add your first one above — start small, win daily.</div>';
     } else {
-      list.innerHTML = active.map(function (h) {
+      list.innerHTML = bandHtml + active.map(function (h) {
         var s = sumById[h.id];
         var monday = H.addDays(H.weekStart(today), gridOffset * 7);
         var grid = H.weekGrid(h, monday);
@@ -165,10 +178,16 @@
             '<button class="ghost-btn" data-act="cancel-edit">Cancel</button></div>' +
             '<div class="error" id="e-error" style="display:none"></div></div></div>';
         }
+        var hc = h.color || H.habitColor(h);
+        var doneNow = h.checkins.indexOf(today) !== -1;
         return '<div class="card">' +
-          '<div class="card-head"><div><h3>' + esc(s.name) + '</h3>' +
+          '<div class="card-head">' +
+          '<button class="big-check' + (doneNow ? ' done' : '') + '" data-act="toggle" data-id="' + s.id + '" data-date="' + today + '"' +
+          ' style="--hc:' + hc + '" aria-pressed="' + doneNow + '" aria-label="Check in today for ' + esc(s.name) + '">' +
+          (doneNow ? '✓' : '') + '</button>' +
+          '<div class="ch-title"><h3>' + esc(s.name) + '</h3>' +
           '<div class="meta">' + esc(s.frequency) + (h.reminder ? ' · ' + esc(h.reminder) : '') + '</div></div>' +
-          '<div class="streak"><span class="num">' + s.streak + '</span><span class="lbl">' + (s.frequency === 'weekly' ? 'wk streak' : 'day streak') + '</span></div></div>' +
+          '<div class="streak" style="--hc:' + hc + '"><span class="num">' + s.streak + '</span><span class="lbl">' + (s.frequency === 'weekly' ? 'wk streak' : 'day streak') + '</span></div></div>' +
           '<div class="grid">' + gridHtml + '</div>' +
           '<div class="grid-nav"><button data-act="prev" data-id="' + s.id + '">← earlier</button>' +
           '<button data-act="now" data-id="' + s.id + '">this week</button></div>' +

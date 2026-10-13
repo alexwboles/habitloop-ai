@@ -50,6 +50,16 @@
     return 'h' + Date.now().toString(36) + _seq.toString(36);
   }
 
+  // Curated per-habit accent palette (Streaks-style). Deterministic by habit id
+  // so existing habits keep their color across reloads.
+  var HABIT_COLORS = ['#0f766e', '#b4541f', '#3b6ea5', '#7c4da0', '#a5821f', '#c2485c'];
+  function habitColor(habit) {
+    var id = String((habit && habit.id) || '');
+    var hash = 0;
+    for (var i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+    return HABIT_COLORS[hash % HABIT_COLORS.length];
+  }
+
   function validateHabit(name, frequency) {
     var errors = [];
     if (!name || !String(name).trim()) errors.push('Give your habit a name.');
@@ -72,6 +82,7 @@
       record: 0, // all-time longest streak (persistent record, only moves up)
       checkins: []
     };
+    habit.color = habitColor(habit);
     habits.push(habit);
     return { ok: true, habit: habit };
   }
@@ -482,6 +493,7 @@
     streakFor: streakFor, longestStreak: longestStreak, totalCheckins: totalCheckins,
     weekGrid: weekGrid, milestoneFor: milestoneFor, nextMilestone: nextMilestone,
     reminderNote: reminderNote, summarize: summarize,
+    HABIT_COLORS: HABIT_COLORS, habitColor: habitColor,
     updateHabit: updateHabit, archiveHabit: archiveHabit, restoreHabit: restoreHabit,
     activeHabits: activeHabits, archivedHabits: archivedHabits,
     consistency: consistency, sortHabits: sortHabits, habitToCSV: habitToCSV,

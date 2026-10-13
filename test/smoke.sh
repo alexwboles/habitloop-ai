@@ -169,3 +169,25 @@ rc=$?
 echo ""
 echo "smoke: $PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]
+
+# redesign sweep: big check circles, today band, habit colors
+node -e "
+var H = require('./js/logic.js');
+var fs = require('fs');
+// habitColor deterministic + in curated set
+var h1 = { id: 'abc123' }, h2 = { id: 'abc123' };
+if (H.habitColor(h1) !== H.habitColor(h2)) { console.error('not deterministic'); process.exit(1); }
+if (H.HABIT_COLORS.indexOf(H.habitColor(h1)) < 0) { console.error('not in set'); process.exit(1); }
+// addHabit assigns a color
+var hs = [];
+var r = H.addHabit(hs, { name: 'Test habit', frequency: 'daily', today: H.todayStr() });
+if (!r.ok || H.HABIT_COLORS.indexOf(r.habit.color) < 0) { console.error('no color on new habit'); process.exit(1); }
+var a = fs.readFileSync('./js/app.js', 'utf8');
+['big-check', 'today-band', 'tb-ring', 'doneToday'].forEach(function (x) {
+  if (a.indexOf(x) < 0) { console.error('app missing ' + x); process.exit(1); }
+});
+var c = fs.readFileSync('./css/style.css', 'utf8');
+['.big-check', '.today-band', '--hc'].forEach(function (x) {
+  if (c.indexOf(x) < 0) { console.error('css missing ' + x); process.exit(1); }
+});
+console.log('OK');" 2>/dev/null && ok "big check circles + today band + habit colors" || bad "redesign checks"
