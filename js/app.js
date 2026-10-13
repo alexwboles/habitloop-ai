@@ -59,6 +59,22 @@
     el('heat-note').textContent = total + ' check-ins in the last 12 months';
   }
 
+  function renderRhythm() {
+    var wrap = el('rhythm-wrap');
+    var box = el('rhythm');
+    var rs = H.weekdayStats(habits, H.todayStr());
+    if (!rs.hasData || !rs.strongest) { wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    box.innerHTML = '<div class="rhythm-bars">' + rs.days.map(function (d) {
+      var pct = d.pct == null ? 0 : d.pct;
+      var cls = d.day === rs.strongest ? ' strong' : (d.day === rs.weakest ? ' weak' : '');
+      return '<div class="rhythm-day' + cls + '"><div class="rhythm-bar"><span style="height:' + pct + '%"></span></div>' +
+        '<div class="rhythm-lbl">' + d.day + '</div><div class="rhythm-pct">' + (d.pct == null ? '—' : d.pct + '%') + '</div></div>';
+    }).join('') + '</div>' +
+    '<p class="rhythm-note">Strongest day: <strong>' + esc(rs.strongest) + '</strong> · weakest: <strong>' + esc(rs.weakest) +
+    '</strong> — schedule the hard habits on your strong days.</p>';
+  }
+
   function render() {
     save(habits);
     var today = H.todayStr();
@@ -95,6 +111,7 @@
       : (habits.length ? '<button class="ghost-btn small" data-act="export-all">Export all CSV</button>' : '');
 
     renderHeatmap();
+    renderRhythm();
 
     if (!active.length) {
       list.innerHTML = '<div class="empty">No habits yet. Add your first one above — start small, win daily.</div>';
@@ -110,6 +127,25 @@
         }).join('');
         var next = s.next ? '<div class="next">Next milestone: <strong>' + s.next.at + '</strong> (' + s.next.remaining + ' to go)</div>' : '<div class="next">All milestones conquered</div>';
         var cons = H.consistency(h, today);
+        // Flexible weekly target line (daily habits with target < 7)
+        var wp = H.weeklyProgress(h, today);
+        var wpHtml = '';
+        if (wp && wp.flexible) {
+          wpHtml = '<div class="week-target' + (wp.met ? ' met' : '') + '">This week: <strong>' + wp.done + '/' + wp.target + '</strong>' +
+            (wp.met ? ' · target met' : ' · ' + wp.remaining + ' more to go') + '</div>';
+        }
+        // Effort rating: only once today is checked in
+        var effHtml = '';
+        if (h.checkins.indexOf(today) !== -1) {
+          var cur = (h.effort && h.effort[today]) || 0;
+          var btns = '';
+          for (var r = 1; r <= 5; r++) {
+            btns += '<button class="eff-btn' + (cur === r ? ' sel' : '') + '" data-act="effort" data-id="' + s.id + '" data-val="' + r + '" title="Effort ' + r + '/5">' + r + '</button>';
+          }
+          var ae = H.avgEffort(h, 30, today);
+          effHtml = '<div class="effort-row"><span class="flbl">Effort today</span>' + btns +
+            (ae ? '<span class="eff-avg">30-day avg ' + ae.avg + ' (' + ae.n + ' rated)</span>' : '') + '</div>';
+        }
         if (editingId === h.id) {
           return '<div class="card"><div class="card-head"><div><h3>Editing habit</h3></div></div>' +
             '<div class="edit-form"><label class="field"><span class="flbl">Habit name</span>' +
@@ -117,6 +153,10 @@
             '<div class="row"><label class="field"><span class="flbl">Frequency</span><select id="e-freq">' +
             '<option value="daily"' + (h.frequency === 'daily' ? ' selected' : '') + '>Daily</option>' +
             '<option value="weekly"' + (h.frequency === 'weekly' ? ' selected' : '') + '>Weekly</option></select></label>' +
+            (h.frequency === 'daily' ? '<label class="field"><span class="flbl">Weekly target</span><select id="e-target">' +
+            [1, 2, 3, 4, 5, 6, 7].map(function (n) {
+              return '<option value="' + n + '"' + ((h.weeklyTarget || 7) === n ? ' selected' : '') + '>' + n + 'x/week' + (n === 7 ? ' (strict daily)' : '') + '</option>';
+            }).join('') + '</select></label>' : '') +
             '<label class="field"><span class="flbl">Preferred time</span>' +
             '<input id="e-reminder" type="text" maxlength="20" value="' + esc(h.reminder || '') + '"></label></div>' +
             '<label class="field"><span class="flbl">Notes</span>' +
@@ -134,7 +174,7 @@
           '<button data-act="now" data-id="' + s.id + '">this week</button></div>' +
           '<div class="stats">Longest: <strong>' + s.longest + '</strong> · Total check-ins: <strong>' + s.total + '</strong> · ' +
           '30-day consistency: <strong>' + cons.pct + '%</strong> (' + cons.done + '/' + cons.total + ')</div>' +
-          next +
+          wpHtml + effHtml + next +
           (h.notes ? '<div class="notes">' + esc(h.notes) + '</div>' : '') +
           '<div class="reminder">' + esc(H.reminderNote(h)) + '</div>' +
           '<div class="card-actions"><button class="ghost-btn" data-act="edit" data-id="' + s.id + '">Edit</button>' +
@@ -192,6 +232,16 @@
         err.style.display = 'block';
         return;
       }
+      var et = el('e-target');
+      if (et && H.findHabit(habits, id).frequency === 'daily') {
+        var tr = H.setWeeklyTarget(habits, id, et.value);
+        if (!tr.ok) {
+          var err2 = el('e-error');
+          err2.textContent = tr.error;
+          err2.style.display = 'block';
+          return;
+        }
+      }
       editingId = null; render();
     } else if (act === 'export') {
       var h = H.findHabit(habits, id);
@@ -206,6 +256,10 @@
     else if (act === 'now') { gridOffset = 0; render(); }
     else if (act === 'export-all') {
       downloadCSV(H.allToCSV(habits), 'habitloop-all-habits.csv');
+    } else if (act === 'effort') {
+      var er = H.setEffort(habits, id, H.todayStr(), t.getAttribute('data-val'));
+      if (!er.ok) { alert(er.error); return; }
+      render();
     } else if (act === 'pack') {
       var pr = H.addPack(habits, id, H.todayStr());
       if (!pr.ok) { alert(pr.error); return; }

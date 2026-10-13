@@ -364,6 +364,94 @@
     return rows.map(function (r) { return r.join(','); }).join('\n');
   }
 
+  // ---- weekday rhythm: where in the week you actually show up ----
+  // Last 90 days of daily-habit check-ins, bucketed by weekday.
+  function weekdayStats(habits, today) {
+    today = today || todayStr();
+    var NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var done = [0, 0, 0, 0, 0, 0, 0], total = [0, 0, 0, 0, 0, 0, 0];
+    var any = false;
+    (habits || []).forEach(function (h) {
+      if (h.archived || h.frequency !== 'daily') return;
+      any = true;
+      var set = {};
+      (h.checkins || []).forEach(function (d) { set[d] = 1; });
+      for (var i = 0; i < 90; i++) {
+        var d = addDays(today, -i);
+        // Days before the habit existed count as misses only if untracked;
+        // a backfilled check-in always counts (the habit was tracked that day).
+        if (!set[d] && h.createdAt && d < h.createdAt) continue;
+        var dow = parse(d).getDay();
+        total[dow]++;
+        if (set[d]) done[dow]++;
+      }
+    });
+    var days = NAMES.map(function (n, i) {
+      return { day: n, done: done[i], total: total[i],
+        pct: total[i] ? Math.round(done[i] / total[i] * 100) : null };
+    });
+    var ranked = days.filter(function (x) { return x.total >= 8; });
+    ranked.sort(function (a, b) { return b.pct - a.pct; });
+    return {
+      days: days,
+      strongest: ranked.length ? ranked[0].day : null,
+      weakest: ranked.length ? ranked[ranked.length - 1].day : null,
+      hasData: any
+    };
+  }
+
+  // ---- effort ratings: how hard did today feel? (1 = easy … 5 = brutal) ----
+  // Stored per-date on the habit, separate from check-ins so old data stays valid.
+  function setEffort(habits, id, dateStr, rating) {
+    var h = findHabit(habits, id);
+    if (!h) return { ok: false, error: 'Habit not found.' };
+    var r = parseInt(rating, 10);
+    if (!(r >= 1 && r <= 5)) return { ok: false, error: 'Effort must be 1–5.' };
+    if (h.checkins.indexOf(dateStr) === -1)
+      return { ok: false, error: 'Check in first, then rate the effort.' };
+    if (!h.effort) h.effort = {};
+    h.effort[dateStr] = r;
+    return { ok: true, habit: h };
+  }
+
+  function avgEffort(habit, days, today) {
+    today = today || todayStr();
+    days = days || 30;
+    var eff = habit.effort || {};
+    var sum = 0, n = 0;
+    for (var i = 0; i < days; i++) {
+      var v = eff[addDays(today, -i)];
+      if (v) { sum += v; n++; }
+    }
+    return n ? { avg: Math.round(sum / n * 10) / 10, n: n } : null;
+  }
+
+  // ---- flexible weekly targets for daily habits ----
+  // "Exercise 4x/week" instead of a strict daily chain: the week counts as
+  // met when done >= target. Default 7 = classic strict daily.
+  function setWeeklyTarget(habits, id, target) {
+    var h = findHabit(habits, id);
+    if (!h) return { ok: false, error: 'Habit not found.' };
+    var t = parseInt(target, 10);
+    if (!(t >= 1 && t <= 7)) return { ok: false, error: 'Weekly target must be 1–7 days.' };
+    if (h.frequency !== 'daily') return { ok: false, error: 'Weekly targets apply to daily habits.' };
+    h.weeklyTarget = t;
+    return { ok: true, habit: h };
+  }
+
+  function weeklyProgress(habit, today) {
+    today = today || todayStr();
+    if (habit.frequency !== 'daily') return null;
+    var target = habit.weeklyTarget || 7;
+    var ws = weekStart(today);
+    var set = {};
+    (habit.checkins || []).forEach(function (d) { set[d] = 1; });
+    var done = 0;
+    for (var i = 0; i < 7; i++) if (set[addDays(ws, i)]) done++;
+    return { done: done, target: target, met: done >= target,
+      remaining: Math.max(0, target - done), flexible: target < 7 };
+  }
+
   function habitToCSV(habit) {
     var rows = [['date', 'done']];
     uniqueSorted(habit.checkins).forEach(function (d) {
@@ -398,6 +486,9 @@
     activeHabits: activeHabits, archivedHabits: archivedHabits,
     consistency: consistency, sortHabits: sortHabits, habitToCSV: habitToCSV,
     STARTER_PACKS: STARTER_PACKS, addPack: addPack,
-    yearHeatmap: yearHeatmap, allToCSV: allToCSV
+    yearHeatmap: yearHeatmap, allToCSV: allToCSV,
+    weekdayStats: weekdayStats,
+    setEffort: setEffort, avgEffort: avgEffort,
+    setWeeklyTarget: setWeeklyTarget, weeklyProgress: weeklyProgress
   };
 }));

@@ -98,6 +98,30 @@ const top = H.sortHabits(H.activeHabits(srt), T, 'streak')[0];
 (top.name === 'B on fire')
   ? ok('flow11: sort by streak puts the 6-day streak first') : bad('flow11: ' + top.name);
 
+// Flow 12: weekday rhythm tells the user which days they actually show up
+const rhy = [];
+const rhyh = H.addHabit(rhy, { name: 'Meditate', frequency: 'daily', today: T });
+for (let w = 0; w < 8; w++) H.checkIn(rhy, rhyh.habit.id, H.addDays(T, -7 * w)); // 8 Mondays
+const rs12 = H.weekdayStats(rhy, T);
+(rs12.strongest === 'Mon' && rs12.days.length === 7 && rs12.hasData)
+  ? ok('flow12: rhythm panel knows Monday is the power day') : bad('flow12: ' + JSON.stringify(rs12));
+
+// Flow 13: rate today's effort; the average surfaces on the card
+H.checkIn(rhy, rhyh.habit.id, T);
+const er13 = H.setEffort(rhy, rhyh.habit.id, T, 2);
+const ae13 = H.avgEffort(rhyh.habit, 30, T);
+(er13.ok && ae13 && ae13.avg === 2 && ae13.n === 1)
+  ? ok('flow13: effort 2/5 recorded for today') : bad('flow13');
+
+// Flow 14: flexible weekly target — 3x/week gym without breaking a chain
+const fx = [];
+const fxh = H.addHabit(fx, { name: 'Gym', frequency: 'daily', today: '2026-10-02' });
+const fxSet = H.setWeeklyTarget(fx, fxh.habit.id, 3);
+['2026-10-02', '2026-09-30', '2026-09-29'].forEach(d => H.checkIn(fx, fxh.habit.id, d));
+const wp14 = H.weeklyProgress(fxh.habit, '2026-10-02');
+(fxSet.ok && wp14.met && wp14.done === 3 && wp14.remaining === 0 && wp14.flexible)
+  ? ok('flow14: 3/3 this week — flexible target met') : bad('flow14: ' + JSON.stringify(wp14));
+
 console.log('');
 console.log('e2e: ' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

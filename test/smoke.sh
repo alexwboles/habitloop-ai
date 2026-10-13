@@ -13,6 +13,9 @@ for f in index.html css/style.css js/logic.js js/app.js README.md; do
   if [ -f "$f" ]; then ok "file exists: $f"; else bad "missing file: $f"; fi
 done
 
+# 5b: rhythm panel markup present
+if grep -q 'id="rhythm"' index.html; then ok "rhythm panel present in index.html"; else bad "rhythm panel missing"; fi
+
 # 6-7: JS syntax
 if node --check js/logic.js 2>/dev/null; then ok "logic.js syntax"; else bad "logic.js syntax"; fi
 if node --check js/app.js 2>/dev/null; then ok "app.js syntax"; else bad "app.js syntax"; fi
@@ -121,6 +124,40 @@ const byLongest = H.sortHabits(habits8, T, 'longest');
 const csv = H.habitToCSV(r7.habit).split('\n');
 (csv[0] === 'date,done' && csv.length === 16 && csv[csv.length - 1] === T + ',yes' && csv[1] < csv[csv.length - 1])
   ? ok('habitToCSV: header + 15 chronological check-in rows') : bad('habitToCSV: ' + csv[0] + ' x' + csv.length);
+
+// 20: weekdayStats buckets 90 days by weekday; strongest day identified
+const habits9 = [];
+const r9 = H.addHabit(habits9, { name: 'Run', frequency: 'daily', today: T });
+for (let w = 0; w < 10; w++) H.checkIn(habits9, r9.habit.id, H.addDays(T, -7 * w)); // 10 Mondays
+const rs = H.weekdayStats(habits9, T);
+(rs.strongest === 'Mon' && rs.days[1].day === 'Mon' && rs.days[1].done === 10 &&
+ rs.days[1].total === 10 && rs.days.length === 7 && rs.hasData)
+  ? ok('weekdayStats: Monday is the strong day (10 check-ins); 7 weekday buckets') : bad('weekdayStats: ' + JSON.stringify(rs));
+
+// 21: effort ratings require a check-in and stay within 1-5
+const er1 = H.setEffort(habits9, r9.habit.id, T, 4);
+const erNoCheck = H.setEffort(habits9, r9.habit.id, H.addDays(T, -3), 2);
+const erRange = H.setEffort(habits9, r9.habit.id, T, 9);
+const ae = H.avgEffort(r9.habit, 30, T);
+(er1.ok && !erNoCheck.ok && !erRange.ok && ae.avg === 4 && ae.n === 1)
+  ? ok('setEffort: needs check-in, 1-5 only; avgEffort = 4 over 30 days') : bad('effort: ' + JSON.stringify(ae));
+
+// 22: flexible weekly targets for daily habits
+const habits10 = [];
+const T2 = '2026-10-02'; // a Friday
+const r10 = H.addHabit(habits10, { name: 'Gym', frequency: 'daily', today: T2 });
+const st = H.setWeeklyTarget(habits10, r10.habit.id, 4);
+const stBad = H.setWeeklyTarget(habits10, r10.habit.id, 9);
+const stLow = H.setWeeklyTarget(habits10, r10.habit.id, 0);
+H.checkIn(habits10, r10.habit.id, T2);
+H.checkIn(habits10, r10.habit.id, H.addDays(T2, -1));
+const wp = H.weeklyProgress(r10.habit, T2);
+(st.ok && !stBad.ok && !stLow.ok && wp.done === 2 && wp.target === 4 && !wp.met && wp.remaining === 2 && wp.flexible)
+  ? ok('weeklyProgress: 2/4 this week, 2 more to go') : bad('weekly: ' + JSON.stringify(wp));
+const r10w = H.addHabit(habits10, { name: 'Plants', frequency: 'weekly', today: T2 });
+const stW = H.setWeeklyTarget(habits10, r10w.habit.id, 3);
+(!stW.ok && H.weeklyProgress(r10w.habit, T2) === null)
+  ? ok('weekly targets rejected for weekly habits') : bad('weekly-target-weekly');
 
 console.log('');
 console.log('logic: ' + pass + ' passed, ' + fail + ' failed');
