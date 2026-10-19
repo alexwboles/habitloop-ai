@@ -300,8 +300,11 @@
     render();
   });
 
+  function seededBefore() {
+    try { return !!localStorage.getItem('habitloop.seeded'); } catch (e) { return true; }
+  }
   // Seed one example on first run so the UI isn't empty
-  if (!habits.length && !localStorage.getItem('habitloop.seeded')) {
+  if (!habits.length && !seededBefore()) {
     var r = H.addHabit(habits, { name: 'Read 10 pages', frequency: 'daily', reminder: '9:00 PM', notes: 'Finish "Atomic Habits" first!' });
     if (r.ok) {
       var t = H.todayStr();
